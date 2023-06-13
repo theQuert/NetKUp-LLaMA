@@ -6,6 +6,7 @@ from typing import Optional
 
 import lightning as L
 import torch
+import pandas as pd
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
@@ -23,11 +24,12 @@ lora_dropout = 0.05
 
 
 def main(
-    prompt: str = "What food do lamas eat?",
+    prompt: str = "Please generate proper content according to following instructions.",
     input: str = "",
-    lora_path: Path = Path("out/lora/alpaca/lit-llama-lora-finetuned.pth"),
-    pretrained_path: Path = Path("checkpoints/lit-llama/7B/lit-llama.pth"),
-    tokenizer_path: Path = Path("checkpoints/lit-llama/tokenizer.model"),
+    lora_path: Path = Path("/home/quert/lit-llama/out/lora/netku/netku-lora-finetuned.pth"),
+    # lora_path: Path = Path("/home/quert/lit-llama/checkpoints/alpaca/lit-llama-lora-finetuned.pth"),
+    pretrained_path: Path = Path("/home/quert/lit-llama/checkpoints/lit-llama/13B/lit-llama.pth"),
+    tokenizer_path: Path = Path("/home/quert/lit-llama/checkpoints/lit-llama/tokenizer.model"),
     quantize: Optional[str] = None,
     max_new_tokens: int = 100,
     top_k: int = 200,
@@ -81,6 +83,10 @@ def main(
     model.eval()
     model = fabric.setup(model)
 
+    inp_csv = pd.read_csv("/home/quert/NetKUp/dataset/for_decoder_exp/prompts_paragraphs.csv")
+    inps = inp_csv.prompt.to_list()
+    
+
     tokenizer = Tokenizer(tokenizer_path)
     sample = {"instruction": prompt, "input": input}
     prompt = generate_prompt(sample)
@@ -99,12 +105,12 @@ def main(
 
     output = tokenizer.decode(output)
     output = output.split("### Response:")[1].strip()
-    print(output)
+    # print(output)
+    return output
 
     print(f"\n\nTime for inference: {t:.02f} sec total, {max_new_tokens / t:.02f} tokens/sec", file=sys.stderr)
     if fabric.device.type == "cuda":
         print(f"Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB", file=sys.stderr)
-
 
 if __name__ == "__main__":
     from jsonargparse import CLI
@@ -115,4 +121,8 @@ if __name__ == "__main__":
         "ignore", 
         message="ComplexHalf support is experimental and many operators don't support it yet"
     )
-    CLI(main)
+    inp_csv = pd.read_csv("/home/quert/NetKUp/dataset/for_decoder_exp/prompts_paragraphs.csv")
+    inps = inp_csv.prompt.to_list()
+    responses = [main(inp) for inp in inps]
+    pd.DataFrame({"reponse": responses}).to_csv("/home/quert/lit-llama/out/lora/netku/generation.csv")
+    # CLI(main)

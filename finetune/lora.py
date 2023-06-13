@@ -46,10 +46,10 @@ warmup_iters = 100
 
 
 def main(
-    data_dir: str = "data/alpaca", 
-    pretrained_path: str = "checkpoints/lit-llama/7B/lit-llama.pth",
+    data_dir: str = "data/netku", 
+    pretrained_path: str = "checkpoints/alpaca/lit-llama-lora-finetuned.pth",
     tokenizer_path: str = "checkpoints/lit-llama/tokenizer.model",
-    out_dir: str = "out/lora/alpaca",
+    out_dir: str = "out/lora/netku",
 ):
 
     fabric = L.Fabric(accelerator="cuda", devices=1, precision="bf16-true")
@@ -61,7 +61,7 @@ def main(
 
     train_data, val_data = load_datasets(data_dir=data_dir)
 
-    config = LLaMAConfig.from_name("7B")
+    config = LLaMAConfig.from_name("13B")
     config.block_size = max_seq_length
 
     checkpoint = torch.load(pretrained_path)
@@ -79,7 +79,7 @@ def main(
 
     # Save the final LoRA checkpoint at the end of training
     checkpoint = lora_state_dict(model)
-    fabric.save(os.path.join(out_dir, "lit-llama-lora-finetuned.pth"), checkpoint)
+    fabric.save(os.path.join(out_dir, "netku-lora-finetuned.pth"), checkpoint)
 
 
 def train(
